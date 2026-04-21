@@ -5,9 +5,10 @@ import {
   getCurrentUser,
   updateCurrentUser,
   updateUserAvatar,
+  updateUserTheme,
 } from '../controllers/userController.js';
 import { upload } from '../middleware/multer.js';
-import { updateUserSchema } from '../validations/userValidation.js';
+import { updateUserSchema, updateThemeSchema } from '../validations/userValidation.js';
 
 const router = Router();
 
@@ -23,6 +24,12 @@ router.patch(
   authenticate,
   upload.single('avatar'),
   updateUserAvatar,
+);
+router.patch(
+  '/users/me/theme',
+  authenticate,
+  celebrate(updateThemeSchema),
+  updateUserTheme,
 );
 
 export default router;

@@ -42,3 +42,19 @@ export const updateUserAvatar = async (req, res) => {
 
   res.status(200).json({ url: user.avatar });
 };
+
+export const updateUserTheme = async (req, res) => {
+  const { theme } = req.body;
+
+  const user = await User.findOneAndUpdate(
+    { _id: req.user._id },
+    { theme },
+    { returnDocument: 'after' },
+  );
+
+  if (!user) {
+    throw createHttpError(404, 'User not found');
+  }
+
+  res.status(200).json({ theme: user.theme });
+};

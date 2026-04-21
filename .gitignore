@@ -2,6 +2,10 @@
 .DS_Store
 .idea
 
+# Leleka specific
+ai.md
+json-files/
+
 # Logs
 logs
 *.log
