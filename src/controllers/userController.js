@@ -1,19 +1,75 @@
 import createHttpError from 'http-errors';
 import { User } from '../models/user.js';
 import { saveFileToCloudinary } from '../utils/saveFileToCloudinary.js';
+import { sendEmail } from '../utils/sendMail.js';
+import handlebars from 'handlebars';
+import path from 'node:path';
+import fs from 'node:fs/promises';
+import crypto from 'crypto';
+import { FIFTEEN_MINUTES } from '../constants/time.js';
+
+const getThemeByGender = (gender) => {
+  if (gender === 'boy') return 'blue';
+  if (gender === 'girl') return 'pink';
+  return 'light';
+};
 
 export const getCurrentUser = async (req, res) => {
   res.status(200).json(req.user);
 };
 
 export const updateCurrentUser = async (req, res) => {
-  const { username, gender, dueDate, theme } = req.body;
+  const { username, email, gender, dueDate } = req.body;
+  const currentUser = req.user;
+
+  if (email && email !== currentUser.email) {
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      throw createHttpError(400, 'Email already in use');
+    }
+
+    const pendingEmailToken = crypto.randomBytes(30).toString('hex');
+
+    const templatePath = path.resolve(
+      'src/templates/confirm-email-change.html',
+    );
+    const templateSource = await fs.readFile(templatePath, 'utf-8');
+    const template = handlebars.compile(templateSource);
+
+    const html = template({
+      username: currentUser.username,
+      newEmail: email,
+      link: `${process.env.FRONTEND_DOMAIN}/confirm-email-change?token=${pendingEmailToken}`,
+    });
+
+    await User.findByIdAndUpdate(currentUser._id, {
+      pendingEmail: email,
+      pendingEmailToken,
+      pendingEmailTokenExpires: new Date(Date.now() + FIFTEEN_MINUTES),
+    });
+
+    await sendEmail({
+      from: process.env.SMTP_FROM,
+      to: currentUser.email,
+      subject: 'Confirm email change',
+      html,
+    });
+
+    const user = await User.findById(currentUser._id);
+    res.status(200).json({
+      message: 'Confirmation email sent to your current email',
+      pendingEmail: user.pendingEmail,
+    });
+    return;
+  }
 
   const updateFields = {};
   if (username !== undefined) updateFields.username = username.trim();
-  if (gender !== undefined) updateFields.gender = gender;
+  if (gender !== undefined) {
+    updateFields.gender = gender;
+    updateFields.theme = getThemeByGender(gender);
+  }
   if (dueDate !== undefined) updateFields.dueDate = dueDate;
-  if (theme !== undefined) updateFields.theme = theme;
 
   const user = await User.findOneAndUpdate(
     { _id: req.user._id },
@@ -32,7 +88,7 @@ export const updateUserAvatar = async (req, res) => {
   if (!req.file) {
     throw createHttpError(400, 'No file');
   }
-  const result = await saveFileToCloudinary(req.file.buffer);
+  const result = await saveFileToCloudinary(req.file.buffer, req.user._id);
 
   const user = await User.findOneAndUpdate(
     { _id: req.user._id },
@@ -57,4 +113,32 @@ export const updateUserTheme = async (req, res) => {
   }
 
   res.status(200).json({ theme: user.theme });
+};
+
+export const confirmEmailChange = async (req, res) => {
+  const { token } = req.query;
+
+  if (!token) {
+    throw createHttpError(400, 'Token is required');
+  }
+
+  const user = await User.findOne({
+    pendingEmailToken: token,
+    pendingEmailTokenExpires: { $gt: new Date() },
+  });
+
+  if (!user) {
+    throw createHttpError(400, 'Invalid or expired token');
+  }
+
+  await User.findByIdAndUpdate(user._id, {
+    email: user.pendingEmail,
+    $unset: {
+      pendingEmail: 1,
+      pendingEmailToken: 1,
+      pendingEmailTokenExpires: 1,
+    },
+  });
+
+  res.status(200).json({ message: 'Email changed successfully' });
 };

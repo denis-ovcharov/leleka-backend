@@ -13,6 +13,12 @@ import handlebars from 'handlebars';
 import path from 'node:path';
 import fs from 'node:fs/promises';
 
+const getThemeByGender = (gender) => {
+  if (gender === 'boy') return 'blue';
+  if (gender === 'girl') return 'pink';
+  return 'light';
+};
+
 export const registerUser = async (req, res) => {
   const { username, email, password, gender, dueDate } = req.body;
 
@@ -22,6 +28,7 @@ export const registerUser = async (req, res) => {
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
+  const theme = getThemeByGender(gender);
 
   const newUser = await User.create({
     username,
@@ -29,6 +36,7 @@ export const registerUser = async (req, res) => {
     password: hashedPassword,
     gender: gender || null,
     dueDate: dueDate || null,
+    theme,
   });
 
   // Створюємо нову сесію

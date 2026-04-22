@@ -6,9 +6,98 @@ import {
   updateCurrentUser,
   updateUserAvatar,
   updateUserTheme,
+  confirmEmailChange,
 } from '../controllers/userController.js';
 import { upload } from '../middleware/multer.js';
 import { updateUserSchema, updateThemeSchema } from '../validations/userValidation.js';
+
+/**
+ * @swagger
+ * /users/me:
+ *   get:
+ *     summary: Get current user
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Current user data
+ *   patch:
+ *     summary: Update current user (theme auto-changes based on gender)
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               gender:
+ *                 type: string
+ *                 enum: [boy, girl, null]
+ *               dueDate:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: User updated
+ *
+ * /users/me/avatar:
+ *   patch:
+ *     summary: Update user avatar
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               avatar:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Avatar updated
+ *
+ * /users/me/theme:
+ *   patch:
+ *     summary: Update user theme (blue/pink/light based on gender)
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               theme:
+ *                 type: string
+ *                 enum: [light, blue, pink]
+ *     responses:
+ *       200:
+ *         description: Theme updated
+ *
+ * /users/me/confirm-email-change:
+ *   post:
+ *     summary: Confirm email change
+ *     parameters:
+ *       - in: query
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Email changed
+ *       400:
+ *         description: Invalid or expired token
+ */
 
 const router = Router();
 
@@ -31,5 +120,6 @@ router.patch(
   celebrate(updateThemeSchema),
   updateUserTheme,
 );
+router.post('/users/me/confirm-email-change', confirmEmailChange);
 
 export default router;

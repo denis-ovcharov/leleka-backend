@@ -8,7 +8,8 @@ const userSchema = new Schema(
     avatar: {
       type: String,
       required: false,
-      default: 'https://ac.goit.global/fullstack/react/default-avatar.jpg',
+      default:
+        'https://res.cloudinary.com/dw5lx23vf/image/upload/v1776898970/leleka-app/avatars/x3pvpldi49evwdpdkgl9.jpg',
     },
     gender: {
       type: String,
@@ -21,8 +22,18 @@ const userSchema = new Schema(
     },
     theme: {
       type: String,
-      enum: ['light', 'dark'],
+      enum: ['light', 'blue', 'pink'],
       default: 'light',
+    },
+    pendingEmail: {
+      type: String,
+      trim: true,
+    },
+    pendingEmailToken: {
+      type: String,
+    },
+    pendingEmailTokenExpires: {
+      type: Date,
     },
   },
   {
