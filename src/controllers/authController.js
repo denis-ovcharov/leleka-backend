@@ -14,7 +14,7 @@ import path from 'node:path';
 import fs from 'node:fs/promises';
 
 export const registerUser = async (req, res) => {
-  const { name, email, password, gender, dueDate } = req.body;
+  const { username, email, password, gender, dueDate } = req.body;
 
   const existingUser = await User.findOne({ email });
   if (existingUser) {
@@ -24,7 +24,7 @@ export const registerUser = async (req, res) => {
   const hashedPassword = await bcrypt.hash(password, 10);
 
   const newUser = await User.create({
-    name,
+    username,
     email,
     password: hashedPassword,
     gender: gender || null,
@@ -171,7 +171,7 @@ export const requestResetEmail = async (req, res) => {
   const template = handlebars.compile(templateSource);
   // 4. Формуємо із шаблона HTML документ з динамічними даними
   const html = template({
-    name: user.username,
+    username: user.username,
     link: `${process.env.FRONTEND_DOMAIN}/reset-password?token=${resetToken}`,
   });
 

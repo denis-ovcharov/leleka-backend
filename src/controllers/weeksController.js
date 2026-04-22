@@ -1,5 +1,6 @@
 import { MomState } from '../models/momState.js';
 import { BabyState } from '../models/babyState.js';
+import { ONE_DAY } from '../constants/time.js';
 
 const MAX_WEEK = 40;
 
@@ -9,7 +10,7 @@ const getWeekNumberFromDueDate = (dueDate) => {
   const due = new Date(dueDate);
   const now = new Date();
   const diffTime = due - now;
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  const diffDays = Math.ceil(diffTime / ONE_DAY);
 
   if (diffDays < 0) return MAX_WEEK;
 
@@ -25,7 +26,7 @@ const getDaysUntilDue = (dueDate) => {
   const due = new Date(dueDate);
   const now = new Date();
   const diffTime = due - now;
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return Math.ceil(diffTime / ONE_DAY);
 };
 
 export const getWeeksPublic = async (req, res) => {
@@ -63,12 +64,8 @@ export const getWeeksPrivate = async (req, res) => {
   const weekNumber = getWeekNumberFromDueDate(dueDate);
   const daysUntilDue = getDaysUntilDue(dueDate);
 
-  const momState = weekNumber
-    ? await MomState.findOne({ weekNumber })
-    : null;
-  const babyState = weekNumber
-    ? await BabyState.findOne({ weekNumber })
-    : null;
+  const momState = weekNumber ? await MomState.findOne({ weekNumber }) : null;
+  const babyState = weekNumber ? await BabyState.findOne({ weekNumber }) : null;
 
   res.status(200).json({
     weekNumber: weekNumber || 1,
