@@ -1,5 +1,4 @@
 import { model, Schema, SchemaTypes } from 'mongoose';
-import { Emotion } from './emotion.js';
 
 const diarySchema = new Schema(
   {
@@ -25,20 +24,17 @@ const diarySchema = new Schema(
       required: true,
     },
     emotions: {
-      type: [SchemaTypes.ObjectId],
-      ref: 'Emotion',
-      validate: {
-        validator: async function (arr) {
-          if (!arr || arr.length === 0) {
-            return false;
-          }
-          if (arr.length > 12) {
-            return false;
-          }
-          const count = await Emotion.countDocuments({ title: { $in: arr } });
-          return count === arr.length;
+      type: [
+        {
+          type: SchemaTypes.ObjectId,
+          ref: 'Emotion',
         },
-        message: 'Invalid emotions: must be valid emotion titles from database',
+      ],
+      validate: {
+        validator: function (arr) {
+          return Array.isArray(arr) && arr.length > 0 && arr.length <= 12;
+        },
+        message: 'Emotions are required and must contain between 1 and 12 items',
       },
     },
   },
@@ -47,12 +43,5 @@ const diarySchema = new Schema(
     versionKey: false,
   },
 );
-
-diarySchema.pre('save', async function () {
-  if (this.emotions && this.emotions.length > 0) {
-    const emotionDocs = await Emotion.find({ title: { $in: this.emotions } });
-    this.emotions = emotionDocs.map((e) => e._id);
-  }
-});
 
 export const Diary = model('Diary', diarySchema);

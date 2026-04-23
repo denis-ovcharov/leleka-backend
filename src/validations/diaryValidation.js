@@ -5,7 +5,7 @@ export const createDiarySchema = {
     title: Joi.string().min(1).max(64).required(),
     description: Joi.string().min(1).max(1000).required(),
     date: Joi.string().pattern(/^\d{2}\.\d{2}\.\d{4}$|^\d{4}-\d{2}-\d{2}$/),
-    emotions: Joi.array().items(Joi.string()).min(1).max(12).required(),
+    emotions: Joi.array().items(Joi.string().trim()).min(1).max(12).required(),
   }),
 };
 
@@ -14,6 +14,6 @@ export const updateDiarySchema = {
     title: Joi.string().min(1).max(64),
     description: Joi.string().min(1).max(1000),
     date: Joi.string().pattern(/^\d{2}\.\d{2}\.\d{4}$|^\d{4}-\d{2}-\d{2}$/),
-    emotions: Joi.array().items(Joi.string()).min(1).max(12),
+    emotions: Joi.array().items(Joi.string().trim()).min(1).max(12),
   }),
 };
