@@ -19,49 +19,7 @@ export const getCurrentUser = async (req, res) => {
 };
 
 export const updateCurrentUser = async (req, res) => {
-  const { username, email, gender, dueDate } = req.body;
-  const currentUser = req.user;
-
-  if (email && email !== currentUser.email) {
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      throw createHttpError(400, 'Email already in use');
-    }
-
-    const pendingEmailToken = crypto.randomBytes(30).toString('hex');
-
-    const templatePath = path.resolve(
-      'src/templates/confirm-email-change.html',
-    );
-    const templateSource = await fs.readFile(templatePath, 'utf-8');
-    const template = handlebars.compile(templateSource);
-
-    const html = template({
-      username: currentUser.username,
-      newEmail: email,
-      link: `${process.env.FRONTEND_DOMAIN}/confirm-email-change?token=${pendingEmailToken}`,
-    });
-
-    await User.findByIdAndUpdate(currentUser._id, {
-      pendingEmail: email,
-      pendingEmailToken,
-      pendingEmailTokenExpires: new Date(Date.now() + FIFTEEN_MINUTES),
-    });
-
-    await sendEmail({
-      from: process.env.SMTP_FROM,
-      to: currentUser.email,
-      subject: 'Confirm email change',
-      html,
-    });
-
-    const user = await User.findById(currentUser._id);
-    res.status(200).json({
-      message: 'Confirmation email sent to your current email',
-      pendingEmail: user.pendingEmail,
-    });
-    return;
-  }
+  const { username, gender, dueDate } = req.body;
 
   const updateFields = {};
   if (username !== undefined) updateFields.username = username.trim();
@@ -115,8 +73,51 @@ export const updateUserTheme = async (req, res) => {
   res.status(200).json({ theme: user.theme });
 };
 
+export const requestEmailChange = async (req, res) => {
+  const { email } = req.body;
+  const currentUser = req.user;
+
+  if (!email || email === currentUser.email) {
+    throw createHttpError(400, 'Invalid email');
+  }
+
+  const existingUser = await User.findOne({ email });
+  if (existingUser) {
+    throw createHttpError(400, 'Email already in use');
+  }
+
+  const pendingEmailToken = crypto.randomBytes(30).toString('hex');
+
+  const templatePath = path.resolve('src/templates/confirm-email-change.html');
+  const templateSource = await fs.readFile(templatePath, 'utf-8');
+  const template = handlebars.compile(templateSource);
+
+  const html = template({
+    username: currentUser.username,
+    newEmail: email,
+    link: `${process.env.FRONTEND_DOMAIN}/confirm-email-change?token=${pendingEmailToken}`,
+  });
+
+  await User.findByIdAndUpdate(currentUser._id, {
+    pendingEmail: email,
+    pendingEmailToken,
+    pendingEmailTokenExpires: new Date(Date.now() + FIFTEEN_MINUTES),
+  });
+
+  await sendEmail({
+    from: process.env.SMTP_FROM,
+    to: currentUser.email,
+    subject: 'Confirm email change',
+    html,
+  });
+
+  res.status(200).json({
+    message: 'Confirmation email sent to your current email',
+  });
+};
+
 export const confirmEmailChange = async (req, res) => {
-  const { token } = req.query;
+  const { token } = req.body;
 
   if (!token) {
     throw createHttpError(400, 'Token is required');

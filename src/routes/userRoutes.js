@@ -6,10 +6,11 @@ import {
   updateCurrentUser,
   updateUserAvatar,
   updateUserTheme,
+  requestEmailChange,
   confirmEmailChange,
 } from '../controllers/userController.js';
 import { upload } from '../middleware/multer.js';
-import { updateUserSchema, updateThemeSchema } from '../validations/userValidation.js';
+import { updateUserSchema, updateThemeSchema, requestEmailChangeSchema } from '../validations/userValidation.js';
 
 /**
  * @swagger
@@ -33,8 +34,6 @@ import { updateUserSchema, updateThemeSchema } from '../validations/userValidati
  *             type: object
  *             properties:
  *               username:
- *                 type: string
- *               email:
  *                 type: string
  *               gender:
  *                 type: string
@@ -83,18 +82,42 @@ import { updateUserSchema, updateThemeSchema } from '../validations/userValidati
  *       200:
  *         description: Theme updated
  *
+ * /users/me/request-email-change:
+ *   patch:
+ *     summary: Request email change
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *     responses:
+ *       200:
+ *         description: Confirmation email sent
+ *       400:
+ *         description: Email already in use
+ *
  * /users/me/confirm-email-change:
  *   post:
  *     summary: Confirm email change
- *     parameters:
- *       - in: query
- *         name: token
- *         required: true
- *         schema:
- *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               token:
+ *                 type: string
  *     responses:
  *       200:
- *         description: Email changed
+ *         description: Email changed successfully
  *       400:
  *         description: Invalid or expired token
  */
@@ -119,6 +142,12 @@ router.patch(
   authenticate,
   celebrate(updateThemeSchema),
   updateUserTheme,
+);
+router.patch(
+  '/users/me/request-email-change',
+  authenticate,
+  celebrate(requestEmailChangeSchema),
+  requestEmailChange,
 );
 router.post('/users/me/confirm-email-change', confirmEmailChange);
 
