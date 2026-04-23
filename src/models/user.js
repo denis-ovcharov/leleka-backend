@@ -7,7 +7,6 @@ const userSchema = new Schema(
     password: { type: String, required: true },
     avatar: {
       type: String,
-      required: false,
       default:
         'https://res.cloudinary.com/dw5lx23vf/image/upload/v1776898970/leleka-app/avatars/x3pvpldi49evwdpdkgl9.jpg',
     },
@@ -18,7 +17,6 @@ const userSchema = new Schema(
     },
     dueDate: {
       type: String,
-      required: false,
     },
     theme: {
       type: String,
