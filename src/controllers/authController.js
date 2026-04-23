@@ -12,6 +12,7 @@ import { sendEmail } from '../utils/sendMail.js';
 import handlebars from 'handlebars';
 import path from 'node:path';
 import fs from 'node:fs/promises';
+import { normalizeDateToIso } from '../utils/date.js';
 
 const getThemeByGender = (gender) => {
   if (gender === 'boy') return 'blue';
@@ -21,6 +22,12 @@ const getThemeByGender = (gender) => {
 
 export const registerUser = async (req, res) => {
   const { username, email, password, gender, dueDate } = req.body;
+  const normalizedDueDate =
+    dueDate === undefined || dueDate === null ? null : normalizeDateToIso(dueDate);
+
+  if (dueDate !== undefined && dueDate !== null && !normalizedDueDate) {
+    throw createHttpError(400, 'Invalid date: use DD.MM.YYYY or YYYY-MM-DD');
+  }
 
   const existingUser = await User.findOne({ email });
   if (existingUser) {
@@ -35,7 +42,7 @@ export const registerUser = async (req, res) => {
     email,
     password: hashedPassword,
     gender: gender || null,
-    dueDate: dueDate || null,
+    dueDate: normalizedDueDate,
     theme,
   });
 

@@ -47,6 +47,8 @@ import { celebrate } from 'celebrate';
  *                 type: string
  *               dueDate:
  *                 type: string
+ *                 description: Use DD.MM.YYYY or YYYY-MM-DD
+ *                 example: 24.10.2027
  *     responses:
  *       201:
  *         description: User registered

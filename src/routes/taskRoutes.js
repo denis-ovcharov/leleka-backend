@@ -9,6 +9,7 @@ import {
 } from '../controllers/taskController.js';
 import {
   createTaskSchema,
+  taskIdSchema,
   updateTaskStatusSchema,
 } from '../validations/taskValidation.js';
 
@@ -30,6 +31,8 @@ import {
  *                 type: string
  *               date:
  *                 type: string
+ *                 description: Use DD.MM.YYYY or YYYY-MM-DD
+ *                 example: 24.10.2027
  *     responses:
  *       201:
  *         description: Task created
@@ -93,9 +96,10 @@ router.get('/tasks', authenticate, getTasks);
 router.patch(
   '/tasks/:id/status',
   authenticate,
+  celebrate(taskIdSchema),
   celebrate(updateTaskStatusSchema),
   updateTaskStatus,
 );
-router.delete('/tasks/:id', authenticate, deleteTask);
+router.delete('/tasks/:id', authenticate, celebrate(taskIdSchema), deleteTask);
 
 export default router;

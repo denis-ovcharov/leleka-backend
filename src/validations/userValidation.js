@@ -1,10 +1,11 @@
 import { Joi, Segments } from 'celebrate';
+import { nullableSupportedDateSchema } from './dateValidation.js';
 
 export const updateUserSchema = {
   [Segments.BODY]: Joi.object({
     username: Joi.string().trim().min(1),
     gender: Joi.string().valid('boy', 'girl', null),
-    dueDate: Joi.date().iso().allow(null),
+    dueDate: nullableSupportedDateSchema,
   }),
 };
 

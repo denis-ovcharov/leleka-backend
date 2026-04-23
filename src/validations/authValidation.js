@@ -1,4 +1,5 @@
 import { Joi, Segments } from 'celebrate';
+import { nullableSupportedDateSchema } from './dateValidation.js';
 
 export const registerUserSchema = {
   [Segments.BODY]: Joi.object({
@@ -6,7 +7,7 @@ export const registerUserSchema = {
     email: Joi.string().email().max(64).required(),
     password: Joi.string().min(8).max(128).required(),
     gender: Joi.string().valid('boy', 'girl', null).default(null),
-    dueDate: Joi.date().iso().allow(null),
+    dueDate: nullableSupportedDateSchema,
   }),
 };
 

@@ -8,6 +8,8 @@ const getWeekNumberFromDueDate = (dueDate) => {
   if (!dueDate) return null;
 
   const due = new Date(dueDate);
+  if (Number.isNaN(due.getTime())) return null;
+
   const now = new Date();
   const diffTime = due - now;
   const diffDays = Math.ceil(diffTime / ONE_DAY);
@@ -24,15 +26,42 @@ const getDaysUntilDue = (dueDate) => {
   if (!dueDate) return null;
 
   const due = new Date(dueDate);
+  if (Number.isNaN(due.getTime())) return null;
+
   const now = new Date();
   const diffTime = due - now;
   return Math.ceil(diffTime / ONE_DAY);
 };
 
-export const getWeeksPublic = async (req, res) => {
-  const { week } = req.query;
+const parseWeekNumber = (value) => {
+  if (value === undefined || value === null || value === '') {
+    return null;
+  }
 
-  if (!week || week < 1 || week > MAX_WEEK) {
+  if (typeof value === 'number') {
+    return Number.isInteger(value) ? value : Number.NaN;
+  }
+
+  if (typeof value !== 'string') {
+    return Number.NaN;
+  }
+
+  const trimmedValue = value.trim();
+
+  if (!/^\d+$/.test(trimmedValue)) {
+    return Number.NaN;
+  }
+
+  return Number.parseInt(trimmedValue, 10);
+};
+
+const isValidWeekNumber = (value) =>
+  Number.isInteger(value) && value >= 1 && value <= MAX_WEEK;
+
+export const getWeeksPublic = async (req, res) => {
+  const weekNum = parseWeekNumber(req.query.week);
+
+  if (!isValidWeekNumber(weekNum)) {
     return res.status(200).json({
       weekNumber: 1,
       daysUntilDue: null,
@@ -41,7 +70,6 @@ export const getWeeksPublic = async (req, res) => {
     });
   }
 
-  const weekNum = parseInt(week, 10);
   const momState = await MomState.findOne({ weekNumber: weekNum });
   const babyState = await BabyState.findOne({ weekNumber: weekNum });
 
@@ -85,10 +113,8 @@ export const getWeeksPrivate = async (req, res) => {
 };
 
 export const getBabyInfo = async (req, res) => {
-  const { week } = req.params;
-
-  const weekNum = parseInt(week, 10);
-  if (!weekNum || weekNum < 1 || weekNum > MAX_WEEK) {
+  const weekNum = parseWeekNumber(req.params.week);
+  if (!isValidWeekNumber(weekNum)) {
     return res.status(404).json({ error: 'Invalid week number' });
   }
 
@@ -102,10 +128,8 @@ export const getBabyInfo = async (req, res) => {
 };
 
 export const getMomInfo = async (req, res) => {
-  const { week } = req.params;
-
-  const weekNum = parseInt(week, 10);
-  if (!weekNum || weekNum < 1 || weekNum > MAX_WEEK) {
+  const weekNum = parseWeekNumber(req.params.week);
+  if (!isValidWeekNumber(weekNum)) {
     return res.status(404).json({ error: 'Invalid week number' });
   }
 

@@ -9,6 +9,7 @@ import {
 } from '../controllers/diaryController.js';
 import {
   createDiarySchema,
+  diaryIdSchema,
   updateDiarySchema,
 } from '../validations/diaryValidation.js';
 
@@ -32,6 +33,8 @@ import {
  *                 type: string
  *               date:
  *                 type: string
+ *                 description: Use DD.MM.YYYY or YYYY-MM-DD
+ *                 example: 24.10.2027
  *               emotions:
  *                 type: array
  *                 items:
@@ -71,6 +74,8 @@ import {
  *                 type: string
  *               date:
  *                 type: string
+ *                 description: Use DD.MM.YYYY or YYYY-MM-DD
+ *                 example: 24.10.2027
  *               emotions:
  *                 type: array
  *                 items:
@@ -105,9 +110,10 @@ router.get('/diaries', authenticate, getDiaries);
 router.patch(
   '/diaries/:id',
   authenticate,
+  celebrate(diaryIdSchema),
   celebrate(updateDiarySchema),
   updateDiary,
 );
-router.delete('/diaries/:id', authenticate, deleteDiary);
+router.delete('/diaries/:id', authenticate, celebrate(diaryIdSchema), deleteDiary);
 
 export default router;

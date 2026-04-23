@@ -21,7 +21,13 @@ const PORT = process.env.PORT ?? 3000;
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-app.use(cors());
+app.use(
+  cors({
+    origin: process.env.FRONTEND_DOMAIN,
+    credentials: true,
+  }),
+);
+
 app.use(logger);
 app.use(express.json());
 app.use(cookieParser());

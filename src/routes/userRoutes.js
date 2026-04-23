@@ -40,6 +40,8 @@ import { updateUserSchema, updateThemeSchema, requestEmailChangeSchema } from '.
  *                 enum: [boy, girl, null]
  *               dueDate:
  *                 type: string
+ *                 description: Use DD.MM.YYYY or YYYY-MM-DD
+ *                 example: 24.10.2027
  *     responses:
  *       200:
  *         description: User updated

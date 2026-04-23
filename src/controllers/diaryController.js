@@ -1,9 +1,14 @@
 import createHttpError from 'http-errors';
 import { Diary } from '../models/diary.js';
 import { Emotion } from '../models/emotion.js';
+import {
+  getSupportedDateTimestamp,
+  normalizeDateToIso,
+} from '../utils/date.js';
 
 const INVALID_EMOTIONS_MESSAGE =
   'Invalid emotions: must be valid emotion titles from database';
+const INVALID_DIARY_DATE_MESSAGE = 'Invalid date: use DD.MM.YYYY or YYYY-MM-DD';
 
 const tryParseEmotionArrayString = (value) => {
   const trimmedValue = value.trim();
@@ -72,12 +77,19 @@ const resolveEmotionIds = async (emotions) => {
 export const createDiary = async (req, res) => {
   const { title, description, date, emotions } = req.body;
   const emotionIds = await resolveEmotionIds(emotions);
+  const normalizedDate = date
+    ? normalizeDateToIso(date)
+    : new Date().toISOString().split('T')[0];
+
+  if (!normalizedDate) {
+    throw createHttpError(400, INVALID_DIARY_DATE_MESSAGE);
+  }
 
   const diary = await Diary.create({
     userId: req.user._id,
     title,
     description,
-    date: date || new Date().toISOString().split('T')[0],
+    date: normalizedDate,
     emotions: emotionIds,
   });
 
@@ -86,9 +98,14 @@ export const createDiary = async (req, res) => {
 };
 
 export const getDiaries = async (req, res) => {
-  const diaries = await Diary.find({ userId: req.user._id })
-    .populate('emotions')
-    .sort({ date: -1 });
+  const diaries = await Diary.find({ userId: req.user._id }).populate('emotions');
+
+  diaries.sort((leftDiary, rightDiary) => {
+    const leftTimestamp = getSupportedDateTimestamp(leftDiary.date) ?? 0;
+    const rightTimestamp = getSupportedDateTimestamp(rightDiary.date) ?? 0;
+
+    return rightTimestamp - leftTimestamp;
+  });
 
   res.status(200).json(diaries);
 };
@@ -100,7 +117,15 @@ export const updateDiary = async (req, res) => {
   const updateFields = {};
   if (title !== undefined) updateFields.title = title;
   if (description !== undefined) updateFields.description = description;
-  if (date !== undefined) updateFields.date = date;
+  if (date !== undefined) {
+    const normalizedDate = normalizeDateToIso(date);
+
+    if (!normalizedDate) {
+      throw createHttpError(400, INVALID_DIARY_DATE_MESSAGE);
+    }
+
+    updateFields.date = normalizedDate;
+  }
   if (emotions !== undefined) {
     updateFields.emotions = await resolveEmotionIds(emotions);
   }

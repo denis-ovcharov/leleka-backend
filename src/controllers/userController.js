@@ -7,6 +7,7 @@ import path from 'node:path';
 import fs from 'node:fs/promises';
 import crypto from 'crypto';
 import { FIFTEEN_MINUTES } from '../constants/time.js';
+import { normalizeDateToIso } from '../utils/date.js';
 
 const getThemeByGender = (gender) => {
   if (gender === 'boy') return 'blue';
@@ -27,7 +28,16 @@ export const updateCurrentUser = async (req, res) => {
     updateFields.gender = gender;
     updateFields.theme = getThemeByGender(gender);
   }
-  if (dueDate !== undefined) updateFields.dueDate = dueDate;
+  if (dueDate !== undefined) {
+    const normalizedDueDate =
+      dueDate === null ? null : normalizeDateToIso(dueDate);
+
+    if (dueDate !== null && !normalizedDueDate) {
+      throw createHttpError(400, 'Invalid date: use DD.MM.YYYY or YYYY-MM-DD');
+    }
+
+    updateFields.dueDate = normalizedDueDate;
+  }
 
   const user = await User.findOneAndUpdate(
     { _id: req.user._id },
