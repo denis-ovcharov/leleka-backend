@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   getUserSession,
   loginUser,
+  loginWithGoogle,
   logoutUser,
   refreshUserSession,
   registerUser,
@@ -10,6 +11,7 @@ import {
 } from '../controllers/authController.js';
 import {
   loginUserSchema,
+  loginWithGoogleSchema,
   registerUserSchema,
   requestResetEmailSchema,
   resetPasswordSchema,
