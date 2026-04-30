@@ -4,19 +4,23 @@ const taskSchema = new Schema(
   {
     userId: {
       type: SchemaTypes.ObjectId,
-      required: true,
       ref: 'User',
+      required: true,
     },
+
     name: {
       type: String,
-      required: true,
-      min: 1,
-      max: 96,
+      required: [true, 'Task name is required'],
+      trim: true,
+      minlength: 1,
+      maxlength: 96,
     },
+
     date: {
-      type: String,
-      required: true,
+      type: Date,
+      required: [true, 'Task date is required'],
     },
+
     isDone: {
       type: Boolean,
       default: false,

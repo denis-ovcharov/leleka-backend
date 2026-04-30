@@ -1,31 +1,34 @@
-import { Router } from 'express';
-import { celebrate } from 'celebrate';
-import { authenticate } from '../middleware/authenticate.js';
-import {
-  getCurrentUser,
-  updateCurrentUser,
-  updateUserAvatar,
-  updateUserTheme,
-  requestEmailChange,
-  confirmEmailChange,
-} from '../controllers/userController.js';
-import { upload } from '../middleware/multer.js';
-import { updateUserSchema, updateThemeSchema, requestEmailChangeSchema } from '../validations/userValidation.js';
-
 /**
  * @swagger
  * /users/me:
  *   get:
- *     summary: Get current user
+ *     summary: Get current user profile
+ *     tags: [Users]
  *     security:
- *       - cookieAuth: []
+ *       - refreshToken: []
  *     responses:
  *       200:
- *         description: Current user data
+ *         description: Current user profile
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+
+/**
+ * @swagger
+ * /users/me:
  *   patch:
- *     summary: Update current user (theme auto-changes based on gender)
+ *     summary: Update current user profile
+ *     tags: [Users]
  *     security:
- *       - cookieAuth: []
+ *       - refreshToken: []
  *     requestBody:
  *       required: true
  *       content:
@@ -33,24 +36,49 @@ import { updateUserSchema, updateThemeSchema, requestEmailChangeSchema } from '.
  *           schema:
  *             type: object
  *             properties:
- *               username:
+ *               name:
+ *                 type: string
+ *                 maxLength: 32
+ *               avatar:
  *                 type: string
  *               gender:
  *                 type: string
- *                 enum: [boy, girl, null]
+ *                 enum: [male, female, 'null']
  *               dueDate:
  *                 type: string
- *                 description: Use DD.MM.YYYY or YYYY-MM-DD
- *                 example: 24.10.2027
+ *                 pattern: ^\d{4}-\d{2}-\d{2}$
+ *               theme:
+ *                 type: string
+ *                 enum: [light, blue, pink]
  *     responses:
  *       200:
- *         description: User updated
- *
+ *         description: User updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ValidationError'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+
+/**
+ * @swagger
  * /users/me/avatar:
  *   patch:
  *     summary: Update user avatar
+ *     tags: [Users]
  *     security:
- *       - cookieAuth: []
+ *       - refreshToken: []
  *     requestBody:
  *       required: true
  *       content:
@@ -63,94 +91,46 @@ import { updateUserSchema, updateThemeSchema, requestEmailChangeSchema } from '.
  *                 format: binary
  *     responses:
  *       200:
- *         description: Avatar updated
- *
- * /users/me/theme:
- *   patch:
- *     summary: Update user theme (blue/pink/light based on gender)
- *     security:
- *       - cookieAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               theme:
- *                 type: string
- *                 enum: [light, blue, pink]
- *     responses:
- *       200:
- *         description: Theme updated
- *
- * /users/me/request-email-change:
- *   patch:
- *     summary: Request email change
- *     security:
- *       - cookieAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *     responses:
- *       200:
- *         description: Confirmation email sent
+ *         description: Avatar updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
  *       400:
- *         description: Email already in use
- *
- * /users/me/confirm-email-change:
- *   post:
- *     summary: Confirm email change
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               token:
- *                 type: string
- *     responses:
- *       200:
- *         description: Email changed successfully
- *       400:
- *         description: Invalid or expired token
+ *         description: Invalid file format
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
+
+import { Router } from 'express';
+import { celebrate } from 'celebrate';
+import {
+  getCurrentUser,
+  updateCurrentUser,
+  updateUserAvatar,
+} from '../controllers/userController.js';
+import { authenticate } from '../middleware/authenticate.js';
+import { upload } from '../middleware/multer.js';
+import { updateCurrentUserSchema } from '../validations/userValidation.js';
 
 const router = Router();
 
-router.get('/users/me', authenticate, getCurrentUser);
+router.use('/users', authenticate);
+
+router.get('/users/me', getCurrentUser);
 router.patch(
   '/users/me',
-  authenticate,
-  celebrate(updateUserSchema),
+  celebrate(updateCurrentUserSchema),
   updateCurrentUser,
 );
-router.patch(
-  '/users/me/avatar',
-  authenticate,
-  upload.single('avatar'),
-  updateUserAvatar,
-);
-router.patch(
-  '/users/me/theme',
-  authenticate,
-  celebrate(updateThemeSchema),
-  updateUserTheme,
-);
-router.patch(
-  '/users/me/request-email-change',
-  authenticate,
-  celebrate(requestEmailChangeSchema),
-  requestEmailChange,
-);
-router.post('/users/me/confirm-email-change', confirmEmailChange);
+router.patch('/users/me/avatar', upload.single('avatar'), updateUserAvatar);
 
 export default router;

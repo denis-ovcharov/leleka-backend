@@ -7,7 +7,6 @@ import path from 'node:path';
 import fs from 'node:fs/promises';
 import crypto from 'crypto';
 import { FIFTEEN_MINUTES } from '../constants/time.js';
-import { normalizeDateToIso } from '../utils/date.js';
 
 const getThemeByGender = (gender) => {
   if (gender === 'boy') return 'blue';
@@ -15,47 +14,64 @@ const getThemeByGender = (gender) => {
   return 'light';
 };
 
+const buildPublicUserResponse = (user) => ({
+  _id: user._id,
+  name: user.name,
+  email: user.email,
+  avatar: user.avatar,
+  gender: user.gender,
+  dueDate: user.dueDate,
+  theme: user.theme,
+  createdAt: user.createdAt,
+  updatedAt: user.updatedAt,
+});
+
 export const getCurrentUser = async (req, res) => {
-  res.status(200).json(req.user);
+  if (!req.user) {
+    throw createHttpError(401, 'Unauthorized');
+  }
+
+  res.status(200).json(buildPublicUserResponse(req.user));
 };
 
 export const updateCurrentUser = async (req, res) => {
-  const { username, gender, dueDate } = req.body;
+  const { name, gender, dueDate } = req.body;
 
   const updateFields = {};
-  if (username !== undefined) updateFields.username = username.trim();
+
+  if (name !== undefined) {
+  const trimmedName = name.trim();
+  if (!trimmedName) {
+    throw createHttpError(400, 'Name cannot be empty');
+  }
+  updateFields.name = trimmedName;
+}
+
   if (gender !== undefined) {
     updateFields.gender = gender;
     updateFields.theme = getThemeByGender(gender);
   }
+
   if (dueDate !== undefined) {
-    const normalizedDueDate =
-      dueDate === null ? null : normalizeDateToIso(dueDate);
-
-    if (dueDate !== null && !normalizedDueDate) {
-      throw createHttpError(400, 'Invalid date: use DD.MM.YYYY or YYYY-MM-DD');
-    }
-
-    updateFields.dueDate = normalizedDueDate;
+    updateFields.dueDate = dueDate;
   }
 
-  const user = await User.findOneAndUpdate(
-    { _id: req.user._id },
-    updateFields,
-    { returnDocument: 'after' },
-  );
+  const user = await User.findOneAndUpdate({ _id: req.user._id }, updateFields, {
+    returnDocument: 'after',
+  });
 
   if (!user) {
     throw createHttpError(404, 'User not found');
   }
 
-  res.status(200).json(user);
+  res.status(200).json(buildPublicUserResponse(user));
 };
 
 export const updateUserAvatar = async (req, res) => {
   if (!req.file) {
     throw createHttpError(400, 'No file');
   }
+
   const result = await saveFileToCloudinary(req.file.buffer, req.user._id);
 
   const user = await User.findOneAndUpdate(
@@ -63,6 +79,10 @@ export const updateUserAvatar = async (req, res) => {
     { avatar: result.secure_url },
     { returnDocument: 'after' },
   );
+
+  if (!user) {
+    throw createHttpError(404, 'User not found');
+  }
 
   res.status(200).json({ url: user.avatar });
 };
@@ -103,7 +123,7 @@ export const requestEmailChange = async (req, res) => {
   const template = handlebars.compile(templateSource);
 
   const html = template({
-    username: currentUser.username,
+    name: currentUser.name,
     newEmail: email,
     link: `${process.env.FRONTEND_DOMAIN}/confirm-email-change?token=${pendingEmailToken}`,
   });
@@ -116,13 +136,13 @@ export const requestEmailChange = async (req, res) => {
 
   await sendEmail({
     from: process.env.SMTP_FROM,
-    to: currentUser.email,
+    to: email,
     subject: 'Confirm email change',
     html,
   });
 
   res.status(200).json({
-    message: 'Confirmation email sent to your current email',
+    message: 'Confirmation email sent to your new email address',
   });
 };
 
@@ -138,8 +158,17 @@ export const confirmEmailChange = async (req, res) => {
     pendingEmailTokenExpires: { $gt: new Date() },
   });
 
-  if (!user) {
+  if (!user || !user.pendingEmail) {
     throw createHttpError(400, 'Invalid or expired token');
+  }
+
+  const emailAlreadyInUse = await User.findOne({
+    email: user.pendingEmail,
+    _id: { $ne: user._id },
+  });
+
+  if (emailAlreadyInUse) {
+    throw createHttpError(400, 'Email already in use');
   }
 
   await User.findByIdAndUpdate(user._id, {

@@ -1,143 +1,133 @@
 import { MomState } from '../models/momState.js';
 import { BabyState } from '../models/babyState.js';
-import { ONE_DAY } from '../constants/time.js';
 
-const MAX_WEEK = 40;
+import {
+  getWeekNumberFromDueDate,
+  getDaysUntilDue,
+  getDaysUntilDueFallback,
+} from '../utils/pregnancy.js';
 
-const getWeekNumberFromDueDate = (dueDate) => {
-  if (!dueDate) return null;
+export const getPublicWeeks = async (req, res) => {
+  try {
+    const weekNumber = req.query.week ? parseInt(req.query.week, 10) : 1;
 
-  const due = new Date(dueDate);
-  if (Number.isNaN(due.getTime())) return null;
+    if (weekNumber < 1 || weekNumber > 42) {
+      const weekNumber = parseInt(req.query.week, 10);
 
-  const now = new Date();
-  const diffTime = due - now;
-  const diffDays = Math.ceil(diffTime / ONE_DAY);
+      if (!weekNumber || weekNumber < 1 || weekNumber > 42) {
+        return res.status(400).json({ error: 'Invalid week number' });
+      }
+    }
 
-  if (diffDays < 0) return MAX_WEEK;
+    const [momState, babyState] = await Promise.all([
+      MomState.findOne({ weekNumber }),
+      BabyState.findOne({ weekNumber }),
+    ]);
 
-  const daysPregnant = 280 - diffDays;
-  const weekNumber = Math.ceil(daysPregnant / 7);
-
-  return Math.min(Math.max(weekNumber, 1), MAX_WEEK);
-};
-
-const getDaysUntilDue = (dueDate) => {
-  if (!dueDate) return null;
-
-  const due = new Date(dueDate);
-  if (Number.isNaN(due.getTime())) return null;
-
-  const now = new Date();
-  const diffTime = due - now;
-  return Math.ceil(diffTime / ONE_DAY);
-};
-
-const parseWeekNumber = (value) => {
-  if (value === undefined || value === null || value === '') {
-    return null;
-  }
-
-  if (typeof value === 'number') {
-    return Number.isInteger(value) ? value : Number.NaN;
-  }
-
-  if (typeof value !== 'string') {
-    return Number.NaN;
-  }
-
-  const trimmedValue = value.trim();
-
-  if (!/^\d+$/.test(trimmedValue)) {
-    return Number.NaN;
-  }
-
-  return Number.parseInt(trimmedValue, 10);
-};
-
-const isValidWeekNumber = (value) =>
-  Number.isInteger(value) && value >= 1 && value <= MAX_WEEK;
-
-export const getWeeksPublic = async (req, res) => {
-  const weekNum = parseWeekNumber(req.query.week);
-
-  if (!isValidWeekNumber(weekNum)) {
     return res.status(200).json({
-      weekNumber: 1,
-      daysUntilDue: null,
-      tipForMom: null,
-      babyInfo: null,
+      weekNumber,
+      daysUntilDue: getDaysUntilDueFallback(weekNumber),
+      babyInfo: babyState
+        ? {
+            image: babyState.image,
+            babySize: babyState.babySize,
+            babyWeight: babyState.babyWeight,
+            babyActivity: babyState.babyActivity,
+            babyDevelopment: babyState.babyDevelopment,
+          }
+        : null,
+      tipForMom: momState?.comfortTips?.[0]?.tip || null,
     });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
   }
-
-  const momState = await MomState.findOne({ weekNumber: weekNum });
-  const babyState = await BabyState.findOne({ weekNumber: weekNum });
-
-  res.status(200).json({
-    weekNumber: weekNum,
-    daysUntilDue: null,
-    tipForMom: momState?.comfortTips?.[0]?.tip || null,
-    babyInfo: babyState
-      ? {
-          analogy: babyState.analogy,
-          image: babyState.image,
-          development: babyState.babyDevelopment,
-        }
-      : null,
-  });
 };
 
-export const getWeeksPrivate = async (req, res) => {
-  const { dueDate, gender } = req.user;
-  const weekNumber = getWeekNumberFromDueDate(dueDate);
-  const daysUntilDue = getDaysUntilDue(dueDate);
+export const getCurrentWeeks = async (req, res) => {
+  try {
+    const { dueDate, gender } = req.user;
 
-  const momState = weekNumber ? await MomState.findOne({ weekNumber }) : null;
-  const babyState = weekNumber ? await BabyState.findOne({ weekNumber }) : null;
+    let weekNumber = getWeekNumberFromDueDate(dueDate);
+    let daysUntilDue = getDaysUntilDue(dueDate);
 
-  res.status(200).json({
-    weekNumber: weekNumber || 1,
-    daysUntilDue,
-    tipForMom: momState?.comfortTips?.[0]?.tip || null,
-    babyInfo: babyState
-      ? {
-          gender: gender,
-          analogy: babyState.analogy,
-          image: babyState.image,
-          development: babyState.babyDevelopment,
-          size: babyState.babySize,
-          weight: babyState.babyWeight,
-        }
-      : null,
-  });
+    if (!weekNumber) weekNumber = 1;
+
+    if (daysUntilDue === null) {
+      daysUntilDue = getDaysUntilDueFallback(weekNumber);
+    }
+
+    const [momState, babyState] = await Promise.all([
+      MomState.findOne({ weekNumber }),
+      BabyState.findOne({ weekNumber }),
+    ]);
+
+    return res.status(200).json({
+      gender,
+      weekNumber,
+      daysUntilDue,
+      babyInfo: babyState
+        ? {
+            analogy: babyState.analogy,
+            image: babyState.image,
+            babySize: babyState.babySize,
+            babyWeight: babyState.babyWeight,
+            babyActivity: babyState.babyActivity,
+            babyDevelopment: babyState.babyDevelopment,
+          }
+        : null,
+      tipForMom: momState?.comfortTips?.[0]?.tip || null,
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 };
 
 export const getBabyInfo = async (req, res) => {
-  const weekNum = parseWeekNumber(req.params.week);
-  if (!isValidWeekNumber(weekNum)) {
-    return res.status(404).json({ error: 'Invalid week number' });
+  try {
+    const weekNumber = parseInt(req.params.weekNumber, 10);
+
+    if (Number.isNaN(weekNumber) || weekNumber < 1 || weekNumber > 42) {
+      return res.status(400).json({ error: 'Invalid week number' });
+    }
+
+    const babyState = await BabyState.findOne({ weekNumber });
+
+    if (!babyState) {
+      return res.status(404).json({ error: 'Baby state not found' });
+    }
+
+    return res.status(200).json({
+      weekNumber,
+      image: babyState.image,
+      analogy: babyState.analogy,
+      babyDevelopment: babyState.babyDevelopment,
+      interestingFact: babyState.interestingFact,
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
   }
-
-  const babyState = await BabyState.findOne({ weekNumber: weekNum });
-
-  if (!babyState) {
-    return res.status(404).json({ error: 'Baby state not found' });
-  }
-
-  res.status(200).json(babyState);
 };
 
 export const getMomInfo = async (req, res) => {
-  const weekNum = parseWeekNumber(req.params.week);
-  if (!isValidWeekNumber(weekNum)) {
-    return res.status(404).json({ error: 'Invalid week number' });
+  try {
+    const weekNumber = parseInt(req.params.weekNumber, 10);
+
+    if (Number.isNaN(weekNumber) || weekNumber < 1 || weekNumber > 42) {
+      return res.status(400).json({ error: 'Invalid week number' });
+    }
+
+    const momState = await MomState.findOne({ weekNumber });
+
+    if (!momState) {
+      return res.status(404).json({ error: 'Mom state not found' });
+    }
+
+    return res.status(200).json({
+      weekNumber,
+      feelings: momState.feelings,
+      comfortTips: momState.comfortTips,
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
   }
-
-  const momState = await MomState.findOne({ weekNumber: weekNum });
-
-  if (!momState) {
-    return res.status(404).json({ error: 'Mom state not found' });
-  }
-
-  res.status(200).json(momState);
 };

@@ -21,8 +21,10 @@ const diarySchema = new Schema(
     },
     date: {
       type: String,
+      required: false,
     },
     emotions: {
+      required: true,
       type: [
         {
           type: SchemaTypes.ObjectId,

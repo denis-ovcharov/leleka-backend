@@ -1,13 +1,18 @@
 import { Joi, Segments } from 'celebrate';
-import { nullableSupportedDateSchema } from './dateValidation.js';
+import { GENDERS } from '../constants/genders.js';
 
 export const registerUserSchema = {
   [Segments.BODY]: Joi.object({
-    username: Joi.string().min(2).max(32).required(),
-    email: Joi.string().email().max(64).required(),
-    password: Joi.string().min(8).max(128).required(),
-    gender: Joi.string().valid('boy', 'girl', null).default(null),
-    dueDate: nullableSupportedDateSchema,
+    name: Joi.string().required().max(32),
+    email: Joi.string().email().required().max(64),
+    password: Joi.string().required().min(8).max(128),
+    avatar: Joi.string(),
+    gender: Joi.string()
+      .valid(...GENDERS)
+      .allow(null),
+    dueDate: Joi.string()
+      .pattern(/^(\d{4})-(\d{2})-(\d{2})$/)
+      .message('invalid date!'),
   }),
 };
 
@@ -26,8 +31,8 @@ export const requestResetEmailSchema = {
 
 export const resetPasswordSchema = {
   [Segments.BODY]: Joi.object({
-    password: Joi.string().min(8).required(),
     token: Joi.string().required(),
+    password: Joi.string().required().min(8),
   }),
 };
 

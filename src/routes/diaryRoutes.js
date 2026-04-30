@@ -1,119 +1,185 @@
-import { Router } from 'express';
-import { celebrate } from 'celebrate';
-import { authenticate } from '../middleware/authenticate.js';
-import {
-  createDiary,
-  getDiaries,
-  updateDiary,
-  deleteDiary,
-} from '../controllers/diaryController.js';
-import {
-  createDiarySchema,
-  diaryIdSchema,
-  updateDiarySchema,
-} from '../validations/diaryValidation.js';
+/**
+ * @swagger
+ * /diaries:
+ *   get:
+ *     summary: Get all diary entries for current user
+ *     tags: [Diaries]
+ *     security:
+ *       - refreshToken: []
+ *     responses:
+ *       200:
+ *         description: List of diary entries
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 diaries:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Diary'
+ *                 total:
+ *                   type: integer
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 
 /**
  * @swagger
  * /diaries:
  *   post:
  *     summary: Create a new diary entry
+ *     tags: [Diaries]
  *     security:
- *       - cookieAuth: []
+ *       - refreshToken: []
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               title:
- *                 type: string
- *               description:
- *                 type: string
- *               date:
- *                 type: string
- *                 description: Use DD.MM.YYYY or YYYY-MM-DD
- *                 example: 24.10.2027
- *               emotions:
- *                 type: array
- *                 items:
- *                   type: string
+ *             $ref: '#/components/schemas/CreateDiary'
  *     responses:
  *       201:
- *         description: Diary entry created
- *   get:
- *     summary: Get all diary entries
- *     security:
- *       - cookieAuth: []
- *     responses:
- *       200:
- *         description: List of diary entries
- *
+ *         description: Diary entry created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Diary'
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ValidationError'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+
+/**
+ * @swagger
  * /diaries/{id}:
  *   patch:
- *     summary: Update diary entry
+ *     summary: Update a diary entry
+ *     tags: [Diaries]
  *     security:
- *       - cookieAuth: []
+ *       - refreshToken: []
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: string
+ *         description: Diary entry ID
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               title:
- *                 type: string
- *               description:
- *                 type: string
- *               date:
- *                 type: string
- *                 description: Use DD.MM.YYYY or YYYY-MM-DD
- *                 example: 24.10.2027
- *               emotions:
- *                 type: array
- *                 items:
- *                   type: string
+ *             $ref: '#/components/schemas/UpdateDiary'
  *     responses:
  *       200:
- *         description: Diary entry updated
+ *         description: Diary entry updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Diary'
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ValidationError'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Diary entry not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+
+/**
+ * @swagger
+ * /diaries/{id}:
  *   delete:
- *     summary: Delete diary entry
+ *     summary: Delete a diary entry
+ *     tags: [Diaries]
  *     security:
- *       - cookieAuth: []
+ *       - refreshToken: []
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: string
+ *         description: Diary entry ID
  *     responses:
  *       204:
- *         description: Diary entry deleted
+ *         description: Diary entry deleted successfully
+ *       400:
+ *         description: Invalid diary ID
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ValidationError'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Diary entry not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
+
+import { Router } from 'express';
+import { celebrate } from 'celebrate';
+import {
+  getAllEntries,
+  createEntry,
+  updateEntry,
+  deleteEntry,
+} from '../controllers/diaryController.js';
+import {
+  createDiarySchema,
+  updateDiarySchema,
+  diaryIdSchema,
+} from '../validations/diaryValidation.js';
+
+import { authenticate } from '../middleware/authenticate.js';
 
 const router = Router();
 
-router.post(
-  '/diaries',
-  authenticate,
-  celebrate(createDiarySchema),
-  createDiary,
-);
-router.get('/diaries', authenticate, getDiaries);
+router.use('/diaries', authenticate);
+
+router.post('/diaries', celebrate(createDiarySchema), createEntry);
+
+router.get('/diaries', getAllEntries);
+
 router.patch(
   '/diaries/:id',
-  authenticate,
   celebrate(diaryIdSchema),
   celebrate(updateDiarySchema),
-  updateDiary,
+  updateEntry,
 );
-router.delete('/diaries/:id', authenticate, celebrate(diaryIdSchema), deleteDiary);
+
+router.delete('/diaries/:id', celebrate(diaryIdSchema), deleteEntry);
 
 export default router;

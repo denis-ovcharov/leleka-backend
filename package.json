@@ -1,44 +1,43 @@
 {
-  "name": "leleka-backend",
+  "name": "stork-backend",
   "version": "1.0.0",
   "description": "",
-  "main": "src/server.js",
+  "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon src/server.js",
-    "start": "NODE_OPTIONS=--no-deprecation node src/server.js",
-    "push": "git add . && git commit -m 'update' && git push"
+    "start": "node src/server.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/denis-ovcharov/leleka-backend.git"
+    "url": "git+https://github.com/Kostya088/stork-backend.git"
   },
   "keywords": [],
-  "author": "Denys Ovcharov <denisovcharov88@gmail.com>",
+  "author": "",
   "license": "ISC",
   "type": "module",
   "bugs": {
-    "url": "https://github.com/denis-ovcharov/leleka-backend/issues"
+    "url": "https://github.com/Kostya088/stork-backend/issues"
   },
-  "homepage": "https://github.com/denis-ovcharov/leleka-backend#readme",
+  "homepage": "https://github.com/Kostya088/stork-backend#readme",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "eslint": "^10.0.3",
-    "globals": "^17.4.0",
+    "eslint": "^10.2.1",
+    "globals": "^17.5.0",
     "nodemon": "^3.1.14"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
-    "celebrate": "^15.0.3",
+    "celebrate": "^12.1.2",
     "cloudinary": "^2.9.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
-    "dotenv": "^17.3.1",
+    "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "handlebars": "^4.7.9",
     "http-errors": "^2.0.1",
     "jsonwebtoken": "^9.0.3",
-    "mongoose": "^9.3.0",
+    "mongoose": "^9.5.0",
     "multer": "^2.1.1",
     "nodemailer": "^8.0.5",
     "pino-http": "^11.0.0",

@@ -1,67 +1,74 @@
 import createHttpError from 'http-errors';
 import { Task } from '../models/task.js';
-import {
-  getSupportedDateTimestamp,
-  normalizeDateToIso,
-} from '../utils/date.js';
-
-const INVALID_TASK_DATE_MESSAGE = 'Invalid date: use DD.MM.YYYY or YYYY-MM-DD';
 
 export const createTask = async (req, res) => {
   const { name, date } = req.body;
-  const normalizedDate = normalizeDateToIso(date);
+  const userId = req.user._id;
 
-  if (!normalizedDate) {
-    throw createHttpError(400, INVALID_TASK_DATE_MESSAGE);
+  if (!name || !date) {
+    throw createHttpError(400, 'Name and date are required');
   }
 
   const task = await Task.create({
-    userId: req.user._id,
     name,
-    date: normalizedDate,
+    date,
+    userId,
+    isDone: false,
   });
 
-  res.status(201).json(task);
+  res.status(201).json({
+    status: 201,
+    message: 'Task created successfully',
+    data: task,
+  });
 };
 
 export const getTasks = async (req, res) => {
-  const tasks = await Task.find({ userId: req.user._id });
+  const userId = req.user._id;
 
-  tasks.sort((leftTask, rightTask) => {
-    const leftTimestamp = getSupportedDateTimestamp(leftTask.date) ?? 0;
-    const rightTimestamp = getSupportedDateTimestamp(rightTask.date) ?? 0;
-
-    return leftTimestamp - rightTimestamp;
-  });
+  const tasks = await Task.find({ userId }).sort({ date: 1 });
 
   res.status(200).json(tasks);
 };
 
 export const updateTaskStatus = async (req, res) => {
-  const { id } = req.params;
+  const { taskId } = req.params;
   const { isDone } = req.body;
+  const userId = req.user._id;
+
+  if (typeof isDone !== 'boolean') {
+    throw createHttpError(400, 'isDone must be boolean');
+  }
 
   const task = await Task.findOneAndUpdate(
-    { _id: id, userId: req.user._id },
+    { _id: taskId, userId },
     { isDone },
-    { returnDocument: 'after' },
+    { new: true },
   );
 
   if (!task) {
     throw createHttpError(404, 'Task not found');
   }
 
-  res.status(200).json(task);
+  res.status(200).json({
+    status: 200,
+    message: 'Task updated successfully',
+    data: task,
+  });
 };
 
 export const deleteTask = async (req, res) => {
-  const { id } = req.params;
+  const { taskId } = req.params;
+  const userId = req.user._id;
 
-  const task = await Task.findOneAndDelete({ _id: id, userId: req.user._id });
+  const task = await Task.findOneAndDelete({ _id: taskId, userId });
 
   if (!task) {
     throw createHttpError(404, 'Task not found');
   }
 
-  res.status(204).send();
+  res.status(200).json({
+    status: 200,
+    message: 'Task deleted successfully',
+  });
 };

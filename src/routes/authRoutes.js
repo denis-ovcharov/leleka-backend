@@ -1,152 +1,235 @@
-import { Router } from 'express';
-import {
-  getUserSession,
-  loginUser,
-  loginWithGoogle,
-  logoutUser,
-  refreshUserSession,
-  registerUser,
-  requestResetEmail,
-  resetPassword,
-} from '../controllers/authController.js';
-import {
-  loginUserSchema,
-  loginWithGoogleSchema,
-  registerUserSchema,
-  requestResetEmailSchema,
-  resetPasswordSchema,
-} from '../validations/authValidation.js';
-import { celebrate } from 'celebrate';
-
 /**
  * @swagger
- * /auth/session:
- *   get:
- *     summary: Get current user session
- *     responses:
- *       200:
- *         description: Session is active
- *       401:
- *         description: Unauthorized
- *
  * /auth/register:
  *   post:
  *     summary: Register a new user
+ *     tags: [Auth]
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               username:
- *                 type: string
- *               email:
- *                 type: string
- *               password:
- *                 type: string
- *               gender:
- *                 type: string
- *               dueDate:
- *                 type: string
- *                 description: Use DD.MM.YYYY or YYYY-MM-DD
- *                 example: 24.10.2027
+ *             $ref: '#/components/schemas/RegisterUser'
  *     responses:
  *       201:
- *         description: User registered
+ *         description: User registered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
  *       400:
- *         description: Email in use
- *
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ValidationError'
+ */
+
+/**
+ * @swagger
  * /auth/login:
  *   post:
  *     summary: Login user
+ *     tags: [Auth]
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               email:
- *                 type: string
- *               password:
- *                 type: string
+ *             $ref: '#/components/schemas/LoginUser'
  *     responses:
  *       200:
  *         description: Login successful
+ *         headers:
+ *           Set-Cookie:
+ *             schema:
+ *               type: string
+ *             description: refreshToken cookie
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ValidationError'
  *       401:
  *         description: Invalid credentials
- *
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+
+/**
+ * @swagger
+ * /auth/refresh:
+ *   post:
+ *     summary: Refresh access token
+ *     tags: [Auth]
+ *     security:
+ *       - refreshToken: []
+ *     responses:
+ *       200:
+ *         description: Token refreshed successfully
+ *         headers:
+ *           Set-Cookie:
+ *             schema:
+ *               type: string
+ *             description: New refreshToken cookie
+ *       401:
+ *         description: Invalid or expired token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+
+/**
+ * @swagger
  * /auth/logout:
  *   post:
  *     summary: Logout user
+ *     tags: [Auth]
  *     security:
- *       - cookieAuth: []
+ *       - refreshToken: []
  *     responses:
  *       204:
- *         description: Logged out
- *
- * /auth/refresh:
- *   post:
- *     summary: Refresh user session
- *     security:
- *       - cookieAuth: []
- *     responses:
- *       200:
- *         description: Session refreshed
- *
+ *         description: Logout successful
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+
+/**
+ * @swagger
  * /auth/request-reset-email:
  *   post:
  *     summary: Request password reset email
+ *     tags: [Auth]
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - email
  *             properties:
  *               email:
  *                 type: string
+ *                 format: email
  *     responses:
  *       200:
- *         description: Email sent
- *
+ *         description: Email sent if account exists
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ValidationError'
+ */
+
+/**
+ * @swagger
  * /auth/reset-password:
  *   post:
- *     summary: Reset password
+ *     summary: Reset password with token
+ *     tags: [Auth]
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - token
+ *               - password
  *             properties:
  *               token:
  *                 type: string
  *               password:
  *                 type: string
+ *                 minLength: 8
  *     responses:
  *       200:
  *         description: Password reset successful
+ *       400:
+ *         description: Invalid or expired token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
+
+/**
+ * @swagger
+ * /auth/google:
+ *   post:
+ *     summary: Login or register with Google access token
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *             properties:
+ *               token:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *       400:
+ *         description: Validation error or Email not provided
+ *       401:
+ *         description: Invalid Google token
+ */
+
+import { Router } from 'express';
+import {
+  loginUser,
+  logoutUser,
+  refreshUserSession,
+  registerUser,
+  requestResetEmail,
+  resetPassword,
+  loginWithGoogle,
+} from '../controllers/authController.js';
+import { celebrate } from 'celebrate';
+import {
+  loginUserSchema,
+  registerUserSchema,
+  requestResetEmailSchema,
+  resetPasswordSchema,
+  loginWithGoogleSchema,
+} from '../validations/authValidation.js';
 
 const router = Router();
 
-router.get('/auth/session', getUserSession);
 router.post('/auth/register', celebrate(registerUserSchema), registerUser);
+
 router.post('/auth/login', celebrate(loginUserSchema), loginUser);
-router.post('/auth/logout', logoutUser);
+
 router.post('/auth/refresh', refreshUserSession);
+
+router.post('/auth/logout', logoutUser);
+
 router.post(
   '/auth/request-reset-email',
   celebrate(requestResetEmailSchema),
   requestResetEmail,
 );
+
 router.post(
   '/auth/reset-password',
   celebrate(resetPasswordSchema),
   resetPassword,
 );
+
 router.post(
   '/auth/google',
   celebrate(loginWithGoogleSchema),

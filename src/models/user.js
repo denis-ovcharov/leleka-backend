@@ -1,10 +1,27 @@
 import { model, Schema } from 'mongoose';
+import { GENDERS } from '../constants/genders.js';
 
 const userSchema = new Schema(
   {
-    username: { type: String, trim: true },
-    email: { type: String, unique: true, required: true, trim: true },
-    password: { type: String, required: true },
+    name: {
+      type: String,
+      trim: true,
+      required: true,
+      maxlength: 32,
+    },
+    email: {
+      type: String,
+      unique: true,
+      required: true,
+      trim: true,
+      maxlength: 64,
+    },
+    password: {
+      type: String,
+      required: true,
+      minlength: 8,
+      maxlength: 128,
+    },
     avatar: {
       type: String,
       default:
@@ -12,11 +29,12 @@ const userSchema = new Schema(
     },
     gender: {
       type: String,
-      enum: ['boy', 'girl', null],
+      enum: GENDERS,
       default: null,
     },
     dueDate: {
       type: String,
+      default: null,
     },
     theme: {
       type: String,
@@ -26,12 +44,15 @@ const userSchema = new Schema(
     pendingEmail: {
       type: String,
       trim: true,
+      default: null,
     },
     pendingEmailToken: {
       type: String,
+      default: null,
     },
     pendingEmailTokenExpires: {
       type: Date,
+      default: null,
     },
   },
   {
@@ -40,15 +61,12 @@ const userSchema = new Schema(
   },
 );
 
-userSchema.pre('save', async function () {
-  if (!this.username) {
-    this.username = this.email;
-  }
-});
-
 userSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.password;
+  delete obj.pendingEmail;
+  delete obj.pendingEmailToken;
+  delete obj.pendingEmailTokenExpires;
   return obj;
 };
 
