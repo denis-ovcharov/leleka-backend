@@ -98,7 +98,9 @@ export const createDiary = async (req, res) => {
 };
 
 export const getDiaries = async (req, res) => {
-  const diaries = await Diary.find({ userId: req.user._id }).populate('emotions');
+  const diaries = await Diary.find({ userId: req.user._id }).populate(
+    'emotions',
+  );
 
   diaries.sort((leftDiary, rightDiary) => {
     const leftTimestamp = getSupportedDateTimestamp(leftDiary.date) ?? 0;

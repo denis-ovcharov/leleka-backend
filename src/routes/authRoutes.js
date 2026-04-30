@@ -145,5 +145,10 @@ router.post(
   celebrate(resetPasswordSchema),
   resetPassword,
 );
+router.post(
+  '/auth/google',
+  celebrate(loginWithGoogleSchema),
+  loginWithGoogle,
+);
 
 export default router;

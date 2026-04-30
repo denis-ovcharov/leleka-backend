@@ -21,7 +21,6 @@ const diarySchema = new Schema(
     },
     date: {
       type: String,
-      required: true,
     },
     emotions: {
       type: [
@@ -34,7 +33,8 @@ const diarySchema = new Schema(
         validator: function (arr) {
           return Array.isArray(arr) && arr.length > 0 && arr.length <= 12;
         },
-        message: 'Emotions are required and must contain between 1 and 12 items',
+        message:
+          'Emotions are required and must contain between 1 and 12 items',
       },
     },
   },
