@@ -6,7 +6,7 @@ import { errorHandler } from './middleware/errorHandler.js';
 import { connectMongoDB } from './db/connectMongoDB.js';
 import { errors } from 'celebrate';
 import swaggerUi from 'swagger-ui-express';
-import { specs } from './config/swagger.js';
+import { swaggerSpec } from './config/swagger.js';
 import weeksRoutes from './routes/weeksRoutes.js';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
@@ -25,10 +25,10 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.get('/docs/swagger.json', (req, res) => {
-  res.json(specs);
+  res.json(swaggerSpec);
 });
 
-app.use('/docs', swaggerUi.serve, swaggerUi.setup(specs));
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use(weeksRoutes);
 app.use(authRouter);
