@@ -6,7 +6,7 @@ import { errorHandler } from './middleware/errorHandler.js';
 import { connectMongoDB } from './db/connectMongoDB.js';
 import { errors } from 'celebrate';
 import swaggerUi from 'swagger-ui-express';
-import { specs } from './configs/swagger.js';
+import { specs } from './config/swagger.js';
 import weeksRoutes from './routes/weeksRoutes.js';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
